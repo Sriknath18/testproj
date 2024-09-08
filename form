@@ -1,9 +1,0 @@
-//ClearCollect(FoodSafetyTemp, Filter(FoodSafetyRAParentProject, MainProjectID=projectID)) 
-If(!IsBlank(First(Filter('Visitor Registration Details','Site Code'.'Site Code'=SiteCode,Visitor.Email=txtGuestEmail.Text,'Is Preregistered'='Is Preregistered (Visitor Registration Details)'.Yes,Text('Expected Arrival Date',DateTimeFormat.ShortDate)=Text(Today(),DateTimeFormat.ShortDate)).'Reason of Visit').'Reason of Visit'),First(Filter('Visitor Registration Details','Site Code'.'Site Code'=SiteCode,Visitor.Email=txtGuestEmail.Text,'Is Preregistered'='Is Preregistered (Visitor Registration Details)'.Yes,Text('Expected Arrival Date',DateTimeFormat.ShortDate)=Text(Today(),DateTimeFormat.ShortDate)).'Reason of Visit').'Reason of Visit',"")
-
-strong
-
-dev below:
-=
-
-If(!IsBlank(First(Filter('Visitor Registration Details','Site Code'.'Site Code'=SiteCode,Visitor.Email=txtGuestEmail.Text,'Is Preregistered'='Is Preregistered (Visitor Registration Details)'.Yes,Text('Expected Arrival Date',DateTimeFormat.ShortDate)=Text(Today(),DateTimeFormat.ShortDate)).'Reason of Visit').'Reason of Visit'),First(Filter('Visitor Registration Details','Site Code'.'Site Code'=SiteCode,Visitor.Email=txtGuestEmail.Text,'Is Preregistered'='Is Preregistered (Visitor Registration Details)'.Yes,Text('Expected Arrival Date',DateTimeFormat.ShortDate)=Text(Today(),DateTimeFormat.ShortDate)).'Reason of Visit').'Reason of Visit',"")
