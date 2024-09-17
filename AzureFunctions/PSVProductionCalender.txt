@@ -1,0 +1,184 @@
+using Azure.Storage.Blobs;
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
+using Google.Protobuf.WellKnownTypes;
+using PSVFunctionApp2;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace PSVFunctionApp
+{
+    public class PSVProductionCalender
+    {       
+    public byte[] AppendRecords(List<ProductionCalender> records, StringBuilder contentBuilder)
+    {
+            try
+            {
+               
+
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = "|",
+                    HeaderValidated = null,
+                    MissingFieldFound = null
+                };
+
+                // Write modified data back to StringBuilder
+                contentBuilder.Clear();
+                using (var writer = new StringWriter(contentBuilder))
+                using (var csv = new CsvWriter(writer, config))
+                {
+                    csv.WriteRecords(records);
+                }
+                // Convert StringBuilder to Stream
+              return  Encoding.UTF8.GetBytes(contentBuilder.ToString());
+               
+            }
+            catch (Exception ex)
+            {
+                
+              throw ex;
+            }
+
+        }
+      public byte[] UpdateAddRecord(StringBuilder contentBuilder, ProductionCalender? newrecord)
+        {
+            byte[] bytearray = null;
+            bool newProductionCalender = true;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = "|",
+                HeaderValidated = null,
+                MissingFieldFound = null ,
+                
+               
+            };
+
+            List<ProductionCalender> records;
+           
+            var recordlist = new List<ProductionCalender>();
+            try
+            {
+                using (var reader = new StringReader(contentBuilder.ToString()))
+                using (var csv = new CsvReader(reader, config))
+                {
+                    records = csv.GetRecords<ProductionCalender>().ToList();
+                }
+
+
+                foreach (var item in records)
+                    {
+
+
+                    if (item.StartTime == newrecord.StartTime
+                    && item.EndTime == newrecord.EndTime && item.Date == newrecord.Date && item.RunType == newrecord.RunType && item.Shift == newrecord.Shift)
+
+                    {
+
+                        newProductionCalender = false;
+
+                            item.Date = newrecord.Date;
+                            item.Line = newrecord.Line;
+                            item.MaxLinespeedTOC = newrecord.MaxLinespeedTOC;
+                            item.Facility = newrecord.Facility;
+                            item.Shift = newrecord.Shift;
+
+                        item.LightsOnFlag = newrecord.LightsOnFlag;
+                        item.LightsOffFlag = newrecord.LightsOffFlag;
+
+                        item.MaxSpeedDueToBottleneckPackaging = newrecord.MaxSpeedDueToBottleneckPackaging;
+
+                            item.EndTime = newrecord.EndTime;
+                          item.StartTime = newrecord.StartTime;
+                        item.PeriodWeek = newrecord.PeriodWeek;
+                        item.TimeMins = newrecord.TimeMins;
+
+                        // recordlist.Add(item);
+
+
+                    }
+
+                    recordlist.Add(item);
+
+                    }
+
+                    if (newProductionCalender && newrecord!=null) {
+                        recordlist.Add(newrecord);
+                    }
+                    
+
+
+                if (recordlist != null)
+                {
+
+                    bytearray = AppendRecords(recordlist, contentBuilder);
+                }
+
+                return bytearray;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+
+        }
+
+    }
+}
+
+
+[Delimiter("|")]
+[CultureInfo("en-US")]
+public class ProductionCalender
+{
+
+    //  validFrom|facility|equipement|localName|Value stream|line|Area|Sub Area|Cell|Unit|S88_Area
+    //  |S88_Process Cell|S88_Unit|S88_name|Machine Type|Bottleneck Flag|Provider Flag|
+    //  Direct Consumer Flag
+    //  |EndPoint Flag|TOC|Vendor|Version|ERP ID
+    // Date|StartTime|EndTime|Facility|Line|shift|RunType|MaxLinespeedTOC|MaxSpeedDueToBottleneckPackaging|LightsOnFlag|LightsOffFlag
+
+    public string? Date { get; set; }
+    public string? StartTime { get; set; }
+    public string? EndTime { get; set; }
+    public string? Facility { get; set; }
+    public string? Line { get; set; }
+    public string? Shift { get; set; }
+    public string? PeriodWeek { get; set; }
+    public string? RunType { get; set; }
+
+    public string? TimeMins { get; set; }
+
+    public string? MaxLinespeedTOC { get; set; }
+    public string? MaxSpeedDueToBottleneckPackaging { get; set; }
+    public string? LightsOnFlag { get; set; }
+    public string? LightsOffFlag { get; set; }
+
+
+}
+
+
+
+
+
+public class EnvProductionCalender
+{
+
+    public ProductionCalender? productionCalender { get; set; }
+
+    public string? Environment { get; set; }
+    public EnvProductionCalender()
+    {
+        this.productionCalender = new ProductionCalender();
+    }
+
+}
