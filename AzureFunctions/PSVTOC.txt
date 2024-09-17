@@ -1,0 +1,157 @@
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
+using Google.Protobuf.WellKnownTypes;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text;
+
+namespace PSVFunctionApp
+{
+    public class PSVTOC
+    {
+    public byte[]  AppendRecords(List<Toc> changeOvers, StringBuilder contentBuilder)
+    {
+
+            try
+            {
+
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = "|",
+                    HeaderValidated = null,
+                    MissingFieldFound = null
+                };
+
+                // Write modified data back to StringBuilder
+                contentBuilder.Clear();
+                using (var writer = new StringWriter(contentBuilder))
+                using (var csv = new CsvWriter(writer, config))
+                {
+                    csv.WriteRecords(changeOvers);
+                }
+                // Convert StringBuilder to Stream
+                return Encoding.UTF8.GetBytes(contentBuilder.ToString());
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+        }
+
+        public byte[] UpdateAddRecord(StringBuilder contentBuilder, Toc? newrecord)
+        {
+            var recordlist = new List<Toc>();
+            bool newToc = true;
+            byte[]? bytearray = null;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+
+                Delimiter = "|",
+                HeaderValidated = null,
+                MissingFieldFound = null
+            };
+
+            List<Toc> records;
+
+
+            try
+            {
+                using (var reader = new StringReader(contentBuilder.ToString()))
+                using (var csv = new CsvReader(reader, config))
+                {
+                    records = csv.GetRecords<Toc>().ToList();
+                }
+                    foreach (var item in records)
+                    {
+                        
+                        Console.WriteLine("Scanning Records");
+                        Console.WriteLine("Facility: " + item.facility + "      To variety: " + item.Equipement);
+                        if (newrecord !=null)
+                        {
+                            if ( item.Equipement == newrecord.Equipement)
+                            {
+
+                                newToc = false;
+                                item.TOC = newrecord.TOC;
+                                item.validFrom = newrecord.validFrom;
+                                item.Variety = newrecord.Variety;
+                                item.Equipement = newrecord.Equipement;
+                                item.facility = newrecord.facility;
+
+                            }
+
+                            recordlist.Add(item);
+
+                        }
+
+
+                    }
+
+                    if (newToc)
+                    {
+                        recordlist.Add(newrecord);
+                    }
+
+
+                
+
+                if (recordlist != null)
+                {
+                    bytearray = AppendRecords(recordlist, contentBuilder);
+                }
+                return bytearray;
+
+
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+                
+            }
+
+        }
+
+     }
+}
+
+
+[Delimiter("|")]
+[CultureInfo("en-US")]
+public class Toc
+{
+
+   // validFrom|facility|Equipement|Variety|TOC
+
+    public string? validFrom { get; set; }
+
+
+    public string? facility { get; set; }
+
+
+    public string? Equipement { get; set; }
+    public string? Variety { get; set; }
+
+
+    public string? TOC { get; set; }
+
+   
+
+}
+
+public class EnvToc
+{
+
+    public Toc? toc { get; set; }
+
+    public string? Environment { get; set; }
+    public EnvToc()
+    {
+        this.toc = new Toc();
+    }
+
+}
