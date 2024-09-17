@@ -1,0 +1,176 @@
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
+using Google.Protobuf.WellKnownTypes;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text;
+
+namespace PSVFunctionApp
+{
+    public class PSVChangeOver
+    {
+
+        public PSVChangeOver()
+        {
+                
+        }
+        public byte[]  AppendRecords (List<ChangeOver> records, StringBuilder contentBuilder)
+        {
+            try
+            {
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+
+                    Delimiter = "|",
+                    HeaderValidated = null,
+                    MissingFieldFound = null
+                };
+
+                // Write modified data back to StringBuilder
+                contentBuilder.Clear();
+                using (var writer = new StringWriter(contentBuilder))
+                using (var csv = new CsvWriter(writer, config))
+                {
+                    csv.WriteRecords(records);
+                }
+
+                return  Encoding.UTF8.GetBytes(contentBuilder.ToString());
+
+
+
+            }
+            catch (Exception  ex)
+            {
+
+                throw ex;
+            }      
+        
+        }
+
+
+        public byte[]  UpdateAddRecord(StringBuilder contentBuilder,ChangeOver? newrecord)
+        {
+            byte[] bytearray = null;
+
+            var recordlist = new List<ChangeOver>();
+            bool newchangeover = true;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = "|",
+                HeaderValidated = null,
+                MissingFieldFound = null
+            };
+
+            List<ChangeOver> records;
+
+
+            try
+            {
+
+                using (var reader = new StringReader(contentBuilder.ToString()))
+                using (var csv = new CsvReader(reader, config))
+                {
+                    records = csv.GetRecords<ChangeOver>().ToList();
+                }
+
+
+                    foreach (var item in records)
+                    {
+
+                        Console.WriteLine("Scanning Records");
+                        Console.WriteLine("Facility: " + item.facility + "      To variety: " + item.To_variety);
+
+                        if (item.From_variety == newrecord.From_variety
+                        && item.To_variety == newrecord.To_variety && item.typeOfTransition == newrecord.typeOfTransition)
+                        {
+
+                            newchangeover = false;
+                            item.line = newrecord.line;
+                            item.validFrom = newrecord.validFrom;
+                            item.From_variety = newrecord.From_variety;
+                            item.To_variety = newrecord.To_variety;
+                            item.typeOfTransition = newrecord.typeOfTransition;
+                            item.duration = newrecord.duration;
+
+                        }
+
+
+                        recordlist.Add(item);
+                    }
+
+
+                    if (newchangeover && newrecord is not null)
+                    {
+                        recordlist.Add(newrecord);
+                    }
+
+                
+
+                if (recordlist != null)
+                {
+                    bytearray = AppendRecords(recordlist, contentBuilder);
+                }
+                return bytearray;
+
+
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
+        }
+
+    }
+}
+
+
+[Delimiter("|")]
+[CultureInfo("en-US")]
+public class ChangeOver
+{
+
+    // validFrom|facility|line|type|From_variety|To_variety|duration
+
+    public string? validFrom { get; set; }
+
+
+    public string? facility { get; set; }
+
+
+    public string? line { get; set; }
+
+
+    public string? From_variety { get; set; }
+
+    public string? To_variety { get; set; }
+
+    public string? duration { get; set; }
+
+
+    public string? typeOfTransition { get; set; }
+
+
+}
+
+
+public class EnvChangeOver
+{
+
+    public ChangeOver? changeOver { get; set; }
+
+    public string? Environment { get; set; }
+    public EnvChangeOver()
+    {
+        this.changeOver = new ChangeOver();
+    }
+
+}
+
+

@@ -1,0 +1,227 @@
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
+using Google.Protobuf.WellKnownTypes;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text;
+
+namespace PSVFunctionApp
+{
+    public class PSVItem
+    {
+        public PSVItem()
+        {
+
+        }
+
+        public byte[] AppendRecords(List<Item> records, StringBuilder contentBuilder)
+        {
+
+            try
+            {
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = "|",
+                    HeaderValidated = null,
+                    MissingFieldFound = null
+                };
+
+                // Write modified data back to StringBuilder
+                contentBuilder.Clear();
+                using (var writer = new StringWriter(contentBuilder))
+                using (var csv = new CsvWriter(writer, config))
+                {
+                    csv.WriteRecords(records);
+                }
+
+                return Encoding.UTF8.GetBytes(contentBuilder.ToString());
+
+
+
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
+        }
+
+
+        public byte[] UpdateAddRecord(StringBuilder contentBuilder, Item? newrecord)
+        {
+            var recordlist = new List<Item>();
+            bool newitem = true;
+            byte[]? bytearray = null;
+
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = "|",
+                HeaderValidated = null,
+                MissingFieldFound = null
+            };
+
+            List<Item> records;
+
+            try
+            {
+                using (var reader = new StringReader(contentBuilder.ToString()))
+                using (var csv = new CsvReader(reader, config))
+                {
+                    records = csv.GetRecords<Item>().ToList();
+                }
+
+
+                foreach (var item in records)
+                {
+
+                    Console.WriteLine("Scanning Records");
+                    Console.WriteLine("Facility: " + item.facility + "      To variety: " + item.productCode);
+
+                    if (item.productCode == newrecord.productCode && item.productDescription == newrecord.productDescription)
+                    {
+
+                        newitem = false;
+                        item.productCode = newrecord.productCode;
+                        item.validFrom = newrecord.validFrom;
+                        item.productUnit = newrecord.productUnit;
+                        item.productDescription = newrecord.productDescription;
+                        item.facility = newrecord.facility;
+
+                    }
+
+                    recordlist.Add(item);
+
+
+                }
+
+                if (newitem && newrecord != null)
+                {
+                    recordlist.Add(newrecord);
+                }
+
+
+                if (recordlist != null)
+                {
+                    bytearray = AppendRecords(recordlist, contentBuilder);
+                }
+                return bytearray;
+
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
+        }
+
+    }
+}
+
+
+[Delimiter("|")]
+[CultureInfo("en-US")]
+public class Item
+{
+
+    //validFrom|facility|line|productCode|productMultiplier|productUnit|productDescription|
+    //materialType|packagingType|sizeGroup|baggerItemCode|baggerMultiplier|baggerUnit|baggerDescription
+    //|baggerWrapperCode|baggerWrapperMultiplier|baggerWrapperUnit|baggerWrapperDescription|showboxItemCode
+    //|showboxMultiplier|showboxUnit|showboxDescription|showboxWrapperCode|showboxWrapperMultiplier|
+    //showboxWrapperUnit|showboxWrapperDescription|multipackItemCode|multipackMultiplier|multipackUnit
+    //|multipackDescription|multipackWrapperCode|multipackWrapperMultiplier|multipackWrapperUnit
+    //|multipackWrapperDescription|firstWrapItemCode|firstWrapMultiplier|firstWrapUnit|firstWrapDescription
+    //|firstWrapWrapperCode|firstWrapWrapperMultiplier|firstWrapWrapperUnit|firstWrapWrapperDescription
+    //|nakedItemCode|nakedWorkingWeight|nakedUnit|nakedDescription
+
+    public string? validFrom { get; set; }
+
+
+    public string? facility { get; set; }
+
+
+    public string? productUnit { get; set; }
+    public string? productDescription { get; set; }
+
+
+    public string? materialType { get; set; }
+
+    public string? productCode { get; set; }
+
+    public string? packagingType { get; set; }
+
+    public string? sizeGroup { get; set; }
+    public string? baggerItemCode { get; set; }
+
+    public string? baggerMultiplier { get; set; }
+    public string? baggerUnit { get; set; }
+
+    public string? baggerWrapperDescription { get; set; }
+
+    public string? showboxItemCode { get; set; }
+
+    public string? showboxMultiplier { get; set; }
+
+    public string? showboxUnit { get; set; }
+    public string? showboxDescription { get; set; }
+    public string? showboxWrapperCode { get; set; }
+
+    public string? showboxWrapperMultiplier { get; set; }
+
+    public string? showboxWrapperUnit { get; set; }
+    public string? showboxWrapperDescription { get; set; }
+    public string? multipackItemCode { get; set; }
+
+    public string? multipackMultiplier { get; set; }
+
+    public string? multipackUnit { get; set; }
+    public string? multipackDescription { get; set; }
+    public string? multipackWrapperCode { get; set; }
+    public string? multipackWrapperMultiplier { get; set; }
+    public string? multipackWrapperUnit { get; set; }
+    public string? multipackWrapperDescription { get; set; }
+    public string? firstWrapItemCode { get; set; }
+    public string? firstWrapMultiplier { get; set; }
+    public string? firstWrapUnit { get; set; }
+
+    public string? firstWrapDescription { get; set; }
+
+    public string? firstWrapWrapperCode { get; set; }
+
+    public string? firstWrapWrapperMultiplier { get; set; }
+
+    public string? firstWrapWrapperUnit { get; set; }
+
+    public string? firstWrapWrapperDescription { get; set; }
+    public string? nakedItemCode { get; set; }
+    public string? nakedWorkingWeight { get; set; }
+
+    public string? nakedUnit { get; set; }
+
+    public string? nakedDescription { get; set; }
+
+
+
+
+
+
+
+}
+
+public class EnvItem
+{
+
+    public Item? Item { get; set; }
+
+    public string? Environment { get; set; }
+    public EnvItem()
+    {
+        this.Item = new Item();
+    }
+
+}

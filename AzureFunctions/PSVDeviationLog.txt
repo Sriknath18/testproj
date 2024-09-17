@@ -1,0 +1,206 @@
+using Azure.Storage.Blobs;
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
+using Google.Protobuf.WellKnownTypes;
+using PSVFunctionApp2;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace PSVFunctionApp
+{
+    public class PSVDeviationLog
+    {
+
+        public PSVDeviationLog()
+        {
+            
+        }
+        public byte[] AppendRecords(List<DeviationLog> records, StringBuilder contentBuilder)
+    {
+            try
+            {
+               
+
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = "|",
+                };
+
+                // Write modified data back to StringBuilder
+                contentBuilder.Clear();
+                using (var writer = new StringWriter(contentBuilder))
+                using (var csv = new CsvWriter(writer, config))
+                {
+                    csv.WriteRecords(records);
+                }
+                // Convert StringBuilder to Stream
+              return  Encoding.UTF8.GetBytes(contentBuilder.ToString());
+               
+            }
+            catch (Exception ex)
+            {
+                
+              throw ex;
+            }
+
+        }
+      public byte[] UpdateAddRecord(StringBuilder contentBuilder, DeviationLog? newrecord)
+        {
+            byte[] bytearray = null;
+            bool newdeviationLog = true;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = "|",
+                HeaderValidated = null,
+                MissingFieldFound = null
+
+
+            };
+
+           
+            List<DeviationLog> records;
+           
+            var recordlist = new List<DeviationLog>();
+            try
+            {
+                using (var reader = new StringReader(contentBuilder.ToString()))
+                using (var csv = new CsvReader(reader, config))
+                {
+                   // csv.Context.RegisterClassMap<DeviationMapper>();
+                    records = csv.GetRecords<DeviationLog>().ToList();
+                }
+
+
+                foreach (var item in records)
+                    {
+
+                    if (item.StartTime == newrecord.StartTime
+                      && item.EndTime == newrecord.EndTime && item.Date == newrecord.Date && item.RunType == newrecord.RunType && item.Shift == newrecord.Shift)
+                    {
+
+                             newdeviationLog = false;
+
+                            item.Date = newrecord.Date;
+                            item.Facility = newrecord.Facility;
+                            item.Unit = newrecord.Unit;
+                           item.Line = newrecord.Line;
+                            item.Cell = newrecord.Cell;
+                           item.Deviation = newrecord.Deviation;
+                        item.Duration = newrecord.Duration;
+                        item.Comments = newrecord.Comments;
+                          item.Shift = newrecord.Shift;
+                        item.RunType = newrecord.RunType;
+                        // recordlist.Add(item);
+
+
+                    }
+
+                    recordlist.Add(item);
+
+                    }
+
+                    if (newdeviationLog && newrecord!=null) {
+                        recordlist.Add(newrecord);
+                    }
+                    
+
+
+                if (recordlist != null)
+                {
+
+                    bytearray = AppendRecords(recordlist, contentBuilder);
+                }
+
+                return bytearray;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+
+        }
+
+    }
+}
+
+
+[Delimiter("|")]
+[CultureInfo("en-US")]
+public class DeviationLog
+{
+
+    //  validFrom|facility|equipement|localName|Value stream|line|Area|Sub Area|Cell|Unit|S88_Area
+    //  |S88_Process Cell|S88_Unit|S88_name|Machine Type|Bottleneck Flag|Provider Flag|
+    //  Direct Consumer Flag
+    //  |EndPoint Flag|TOC|Vendor|Version|ERP ID
+
+    public string? Date { get; set; }
+    public string? StartTime { get; set; }
+    public string? EndTime { get; set; }
+    public string? Facility { get; set; }
+    public string? Line { get; set; }
+    public string? Shift { get; set; }
+    public string? RunType { get; set; }
+
+    public string? SubArea { get; set; }
+    public string? Cell { get; set; }
+    public string? Unit { get; set; }
+    public string? Deviation { get; set; }
+    public string? Duration { get; set; }
+    public string? Comments { get; set; }
+
+  
+
+
+}
+
+public class DeviationMapper :ClassMap<DeviationLog>
+{
+    public DeviationMapper()
+    {
+
+        Map(m => m.Date).Name("Date").Ignore();
+        Map(m => m.StartTime).Name("StartTime").Ignore();
+        Map(m => m.EndTime).Name("EndTime").Ignore(true);
+        Map(m => m.Facility).Name("Facility").Ignore();
+        Map(m => m.Line).Name("line").Ignore();
+        Map(m=>m.SubArea).Name("SubArea"). Ignore();
+        Map(m => m.Cell).Name("Cell").Ignore();
+        Map(m => m.Unit).Name("Unit").Ignore();
+        Map(m => m.Duration).Name("Duration").Ignore();
+        Map(m => m.Comments).Name("Comments").Ignore();
+        Map(m => m.Shift).Name("Shift").Ignore();
+        Map(m => m.RunType).Name("RunType").Ignore();
+        Map(m => m.Deviation).Name("Deviation").Ignore();
+        Map(m => m.Duration).Name("Duration").Ignore();
+
+
+    }
+
+
+
+
+}
+
+
+public class EnvDeviationLog
+{
+
+    public DeviationLog? deviationLog { get; set; }
+
+    public string? Environment { get; set; }
+    public EnvDeviationLog()
+    {
+        this.deviationLog = new DeviationLog();
+    }
+
+}

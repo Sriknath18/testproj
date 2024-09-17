@@ -1,0 +1,237 @@
+using Azure.Storage.Blobs;
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
+using Google.Protobuf.WellKnownTypes;
+using PSVFunctionApp2;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace PSVFunctionApp
+{
+    public class PSVLossCategories
+    {
+        public byte[] AppendRecords(List<LossCategories> records, StringBuilder contentBuilder)
+        {
+            try
+            {
+
+
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = "|",
+                    HeaderValidated = null,
+                    MissingFieldFound = null
+          };
+
+                // Write modified data back to StringBuilder
+                contentBuilder.Clear();
+                using (var writer = new StringWriter(contentBuilder))
+                using (var csv = new CsvWriter(writer, config))
+                {
+                    csv.WriteRecords(records);
+                }
+                // Convert StringBuilder to Stream
+                return Encoding.UTF8.GetBytes(contentBuilder.ToString());
+
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+
+        }
+        public byte[] UpdateAddRecord(StringBuilder contentBuilder, LossCategories? newrecord)
+        {
+            byte[] bytearray = null;
+            bool neweuipment = true;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = "|",
+                HeaderValidated = null,
+                MissingFieldFound = null
+            };
+
+            List<LossCategories> records;
+
+            var recordlist = new List<LossCategories>();
+            try
+            {
+                using (var reader = new StringReader(contentBuilder.ToString()))
+                using (var csv = new CsvReader(reader, config))
+                {
+                    records = csv.GetRecords<LossCategories>().ToList();
+                }
+                foreach (var item in records)
+                {
+
+                    if (item.StartTime == newrecord.StartTime 
+                        && item.EndTime == newrecord.EndTime&& item.Date == newrecord.Date && item.RunType == newrecord.RunType && item.Shift == newrecord.Shift)
+                    {
+                        neweuipment = false;
+
+                        item.ActualChangeOverTime = newrecord.ActualChangeOverTime;
+                        item.ActualCleaningCIL = newrecord.ActualCleaningCIL;
+                        item.ActualLineTrial = newrecord.ActualLineTrial;
+
+                        item.ActualOutputTons = newrecord.ActualOutputTons;
+
+                        item.ActualPlannedMaintenance = newrecord.ActualPlannedMaintenance;
+
+                        item.ActualShutdownTime = newrecord.ActualShutdownTime;
+
+                        item.ActualSlowRunning = newrecord.ActualSlowRunning;
+
+                        item.SlowRunningPlanned = newrecord.SlowRunningPlanned;
+
+
+                        item.StartupTimeDeviation = newrecord.StartupTimeDeviation;
+                        item.ShortStops = newrecord.ShortStops;
+                        item.Breakdown = newrecord.Breakdown;
+                        item.CleaningCILDeviation = newrecord.CleaningCILDeviation;
+                        // item.Comments = newrecord.Comments;
+                        item.Line = newrecord.Line;
+                        item.LineTrial = newrecord.LineTrial;
+                        item.LossDueToServicesManpower = newrecord.LossDueToServicesManpower;
+                        item.ActualStartupTime = newrecord.ActualStartupTime;
+                        item.Scrap = newrecord.Scrap;
+                        item.OperationalLoss = newrecord.OperationalLoss;
+                        item.UpstreamStarved = newrecord.UpstreamStarved;
+                        item.StartupTimeDeviation = newrecord.StartupTimeDeviation;
+                        item.StartupStandardTime = newrecord.StartupStandardTime;
+                        item.ShutdownTimeDeviation = newrecord.ShutdownTimeDeviation;
+                        item.ShutdownStandardTime = newrecord.ShutdownStandardTime;
+                        item.ScrapTimeEquivalent = newrecord.ScrapTimeEquivalent;
+                        item.ReworkTimeEquivalent = newrecord.ReworkTimeEquivalent;
+                        item.ReducedSpeedSlowRunning = newrecord.ReducedSpeedSlowRunning;
+                        item.QualityRecipe = newrecord.QualityRecipe;
+                        item.PlannedMaintenanceDeviation = newrecord.PlannedMaintenanceDeviation;
+                        item.PlannedMaintenance = newrecord.PlannedMaintenance;
+                        item.CleaningCILPlanned = newrecord.CleaningCILPlanned;
+                        item.LineTrialDeviation = newrecord.LineTrialDeviation;
+                        item.ActualLineTrial = newrecord.ActualLineTrial;
+                        item.Rework = newrecord.Rework;
+                        item.SlowRunningPlannedDeviation = newrecord.SlowRunningPlannedDeviation;
+                        item.Shift = newrecord.Shift;
+                        item.RunType = newrecord.RunType;
+
+                        // recordlist.Add(item);
+
+
+                    }
+
+                    recordlist.Add(item);
+
+                }
+
+                if (neweuipment && newrecord != null)
+                {
+                    recordlist.Add(newrecord);
+                }
+
+
+
+                if (recordlist != null)
+                {
+
+                    bytearray = AppendRecords(recordlist, contentBuilder);
+                }
+
+                return bytearray;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+
+        }
+
+    }
+}
+
+
+[Delimiter("|")]
+[CultureInfo("en-US")]
+public class LossCategories
+{
+
+    //  validFrom|facility|equipement|localName|Value stream|line|Area|Sub Area|Cell|Unit|S88_Area
+    //  |S88_Process Cell|S88_Unit|S88_name|Machine Type|Bottleneck Flag|Provider Flag|
+    //  Direct Consumer Flag
+    //  |EndPoint Flag|TOC|Vendor|Version|ERP ID
+
+    public string? Date { get; set; }
+    public string? StartTime { get; set; }
+    public string? EndTime { get; set; }
+
+    public string? Facility { get; set; }
+    public string? Line { get; set; }
+    public string? Shift { get; set; }
+    public string? RunType { get; set; }
+
+    public string? ActualOutputTons { get; set; }
+    public string? ActualStartupTime { get; set; }
+    public string? ActualShutdownTime { get; set; }
+    public string? ActualChangeOverTime { get; set; }
+    public string? ActualPlannedMaintenance { get; set; }
+    public string? ActualCleaningCIL { get; set; }
+    public string? ActualLineTrial { get; set; }
+    public string? ActualSlowRunning { get; set; }
+    public string? StartupStandardTime { get; set; }
+    public string? ShutdownStandardTime { get; set; }
+    public string? ChangeOverStandardTime { get; set; }
+    public string? PlannedMaintenance { get; set; }
+    public string? CleaningCILPlanned { get; set; }
+    public string? LineTrial { get; set; }
+    public string? SlowRunningPlanned { get; set; }
+    public string? StartupTimeDeviation { get; set; }
+    public string? ShutdownTimeDeviation { get; set; }
+    public string? ChangeOverTimeDeviation { get; set; }
+    public string? PlannedMaintenanceDeviation { get; set; }
+    public string? CleaningCILDeviation { get; set; }
+    public string? LineTrialDeviation { get; set; }
+    public string? SlowRunningPlannedDeviation { get; set; }
+    public string? UpstreamStarved { get; set; }
+    public string? DownstreamBlocked { get; set; }
+    public string? LossDueToServicesManpower { get; set; }
+    public string? Breakdown { get; set; }
+    public string? OperationalLoss { get; set; }
+    public string? ShortStops { get; set; }
+    public string? ReducedSpeedSlowRunning { get; set; }
+    public string? QualityRecipe { get; set; }
+    public string? ScrapTimeEquivalent { get; set; }
+    public string? ReworkTimeEquivalent { get; set; }
+    public string? Scrap { get; set; }
+    public string? Rework { get; set; }
+    //public string? Deviation { get; set; }
+    //public string? Duration { get; set; }
+    //public string? Comments { get; set; }
+
+
+
+}
+
+
+
+
+public class EnvLossCategories
+{
+
+    public LossCategories? lossCategories { get; set; }
+
+    public string? Environment { get; set; }
+    public EnvLossCategories()
+    {
+        this.lossCategories = new LossCategories();
+    }
+
+}

@@ -1,0 +1,242 @@
+using Azure.Storage.Blobs;
+using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.Configuration.Attributes;
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using PSVFunctionApp2;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace PSVFunctionApp
+{
+    public class PSVEditorEquipment
+    {       
+      public byte[] AppendRecords(List<Equipment> records, StringBuilder contentBuilder)
+    {
+            try
+            {
+               
+
+                var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    Delimiter = "|",
+                    HeaderValidated = null,
+                    MissingFieldFound = null
+                };
+
+                // Write modified data back to StringBuilder
+                contentBuilder.Clear();
+                using (var writer = new StringWriter(contentBuilder))
+                using (var csv = new CsvWriter(writer, config))
+                {
+                    csv.WriteRecords(records);
+                }
+                // Convert StringBuilder to Stream
+              return  Encoding.UTF8.GetBytes(contentBuilder.ToString());
+               
+            }
+            catch (Exception ex)
+            {
+                
+              throw ex;
+            }
+
+        }
+      public byte[] UpdateAddRecord(StringBuilder contentBuilder, Equipment newrecord)
+        {
+            byte[] bytearray = null;
+            bool neweuipment = true;
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Delimiter = "|",
+                HeaderValidated = null,
+                MissingFieldFound = null
+
+            };
+
+            List<Equipment> records;
+           
+            var recordlist = new List<Equipment>();
+            try
+            {
+                using (var reader = new StringReader(contentBuilder.ToString()))
+                using (var csv = new CsvReader(reader, config))
+                {
+                    records = csv.GetRecords<Equipment>().ToList();
+                }
+
+
+                foreach (var item in records)
+                    {
+
+
+                        Console.WriteLine("Scanning Records");
+                        Console.WriteLine("ID: " + item.Area + "      Name: " + item.equipement);
+
+
+                        if (item.equipement == newrecord.equipement )
+                        {
+
+                            neweuipment = false;
+
+                            item.equipement = newrecord.equipement;
+                            item.validFrom = newrecord.validFrom;
+                            item.Unit = newrecord.Unit;
+
+                            item.S88_Unit = newrecord.S88_Unit;
+
+                            item.Area = newrecord.Area;
+
+                            item.DirectConsumerFlag = newrecord.DirectConsumerFlag;
+
+                            item.Cell = newrecord.Cell;
+
+                            item.Vendor = newrecord.Vendor;
+
+                            item.facility = newrecord.facility;
+
+                            item.MachineType = newrecord.MachineType;
+                            item.localName = newrecord.localName;
+                            item.TOC = newrecord.TOC;
+                            item.S88_ProcessCell = newrecord.S88_ProcessCell;
+
+                           // recordlist.Add(item);
+
+
+                        }
+
+                        recordlist.Add(item);
+
+                    }
+
+                    if (neweuipment&& newrecord!=null) {
+                        recordlist.Add(newrecord);
+                    }
+                    
+
+
+                if (recordlist != null)
+                {
+
+                    bytearray = AppendRecords(recordlist, contentBuilder);
+                }
+
+                return bytearray;
+
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+
+        }
+
+    }
+}
+
+
+[Delimiter("|")]
+[CultureInfo("en-US")]
+public class Equipment
+{
+
+    //  validFrom|facility|equipement|localName|Value stream|line|Area|Sub Area|Cell|Unit|S88_Area
+    //  |S88_Process Cell|S88_Unit|S88_name|Machine Type|Bottleneck Flag|Provider Flag|
+    //  Direct Consumer Flag
+    //  |EndPoint Flag|TOC|Vendor|Version|ERP ID
+
+
+    public string? validFrom { get; set; }
+
+
+    public string? facility { get; set; }
+
+
+    public string? equipement { get; set; }
+    public string? localName { get; set; }
+    //[Name("Value stream")]
+
+    //[JsonPropertyName("Value stream")]
+    public string? Valuestream { get; set; }
+    public string? line { get; set; }
+    public string? Area { get; set; }
+
+
+   // [Name("Sub Area")]
+
+   // [JsonPropertyName("Sub Area")]
+    public string? SubArea { get; set; }
+    public string? Cell { get; set; }
+    public string? Unit { get; set; }
+    public string? S88_Area { get; set; }
+
+  //  [Name("S88_Process Cell")]
+
+  //  [JsonPropertyName("S88_Process Cell")]
+    public string? S88_ProcessCell { get; set; }
+    public string? S88_Unit { get; set; }
+    public string? S88_name { get; set; }
+   // [Name("Machine Type")]
+
+    //[JsonPropertyName("Machine Type")]
+
+    public string? MachineType { get; set; }
+
+   // [Name("Bottleneck Flag")]
+
+  //  [JsonPropertyName("Bottleneck Flag")]
+
+    public string? BottleneckFlag { get; set; }
+
+   // [Name("Provider Flag")]
+
+
+   // [JsonPropertyName("Provider Flag")]
+
+    public string? ProviderFlag { get; set; }
+
+  //  [Name("Direct Consumer Flag")]
+
+   // [JsonPropertyName("Direct Consumer Flag")]
+
+    public string? DirectConsumerFlag { get; set; }
+   // [JsonPropertyName("EndPoint Flag")]
+
+    public string? EndPointFlag { get; set; }
+
+    public string? TOC { get; set; }
+
+    public string? Vendor { get; set; }
+
+    public string? Version { get; set; }
+
+    public string? ERPID { get; set; }
+
+
+
+
+}
+
+
+public class EnvEquipment
+{
+
+    public Equipment? equipment { get; set; }
+
+    public string? Environment { get; set; }
+    public EnvEquipment()
+    {
+            this.equipment = new Equipment();
+    }
+
+}
+
+
