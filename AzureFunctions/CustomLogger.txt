@@ -1,0 +1,44 @@
+using Azure.Storage.Blobs.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace PSVFunctionApp2
+{
+    public class CustomLogger
+    {
+        // Call Logger API
+        string logFlowUrl = "https://prod-70.westus.logic.azure.com:443/workflows/7ca7110ddbe24db686f4176f4c2c765f/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=irChi5sOfJq09C06UgtamyQcbxN6DVLBfQtGMmqu8-c";
+
+        public void LogActivity(string message, string type = "information")
+        {
+
+            var log = new LogItem(message, type);
+            var json = JsonSerializer.Serialize(log);
+            var data = new System.Net.Http.StringContent(json, Encoding.UTF8, "application/json");
+
+            HttpClient newClient = new HttpClient();
+
+            newClient.PostAsync(logFlowUrl, data);
+
+        }
+
+
+    }
+
+    public class LogItem
+    {
+        public string errortype { get; set; }
+        public string errortext { get; set; }
+
+        public LogItem(string message, string type = "information")
+        {
+            errortext = message;
+            errortype = type;
+        }
+    }
+
+}
