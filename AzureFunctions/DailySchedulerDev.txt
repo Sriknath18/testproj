@@ -1,0 +1,48 @@
+using System;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
+
+namespace PSVFunctionApp2
+{
+    public class DailySchedulerDev
+    {
+        private readonly ILogger _logger;
+
+        public DailySchedulerDev(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger<DailySchedulerStage>();
+        }
+        [Function("DailySchedulerDev")]
+        public void Run([TimerTrigger("0 0 */3 * * *")] TimerInfo myTimer)
+        {
+            _logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
+          
+            CallDailyJob();
+
+            if (myTimer.ScheduleStatus is not null)
+            {
+                _logger.LogInformation($"Next timer schedule at: {myTimer.ScheduleStatus.Next}");
+            }
+        }
+
+        private void CallDailyJob()
+        {
+            try
+            {
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    httpClient.GetAsync("https://dev-weu-iot-core-mdp-web-funcapp.azurewebsites.net/api/DailySchedularReadPSVToAPIFunction?");
+                }
+
+
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
+           
+        }
+    }
+}
+
