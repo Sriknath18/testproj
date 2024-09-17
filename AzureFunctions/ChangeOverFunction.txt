@@ -1,0 +1,201 @@
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using PSVFunctionApp;
+using System.ComponentModel.Design.Serialization;
+using System.Text;
+using FromBodyAttribute = Microsoft.Azure.Functions.Worker.Http.FromBodyAttribute;
+using System.Text.Json;
+
+namespace PSVFunctionApp2
+{
+    public class ChangeOverFunction
+    {
+        private readonly ILogger<ChangeOverFunction> _logger;
+
+
+
+        private IConfiguration? config;
+        private string Connectionstring = string.Empty;
+        private string containername = string.Empty;
+        // private static string blobName = "DEV/DEV_Changeover.psv";
+        private static string fileHeader = "validFrom|facility|line|typeOfTransition|From_variety|To_variety|duration";
+        public IConfiguration Configuration
+        {
+            set
+            {
+                this.config = value;
+            }
+            get
+            {
+                if (config == null)
+                {
+                    throw new Exception("configuration  is not initialized");
+                }
+                else
+                {
+                    return config;
+                }
+            }
+        }
+
+        public ChangeOverFunction(ILogger<ChangeOverFunction> logger)
+        {
+            _logger = logger;
+        }
+
+        [Function("ChangeOverFunction")]
+        public async Task<IActionResult> AddUpdateChangeover([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req, [FromBody] EnvChangeOver envchangeOver )
+
+        {
+            _logger.LogInformation("C# HTTP trigger function processed a request.");
+            try
+
+            {
+                string blobName = envchangeOver?.changeOver?.facility + "/" + envchangeOver?.changeOver?.facility + "_Changeover.psv";
+                BlobContainerClient containerClient = null;
+                if (envchangeOver.Environment=="Stage")
+                {
+
+                    SetConnectionDetails_Stage(out Connectionstring, out containername);
+                    // Create a BlobServiceClient object
+                    BlobServiceClient blobServiceClient = new BlobServiceClient(Connectionstring);
+                    // Get the container client
+
+                    containerClient = blobServiceClient.GetBlobContainerClient(containername);
+                    // Get the blob client
+                    //check blob
+                    if (envchangeOver?.changeOver?.facility != null)
+                    {
+                        await CreateFolderAndFileIfNotExists(containerClient, envchangeOver?.changeOver?.facility);
+
+                    }
+
+                }
+                else
+                { 
+                SetConnectionDetails_Dev(out Connectionstring, out containername);
+                // Create a BlobServiceClient object
+                BlobServiceClient blobServiceClient = new BlobServiceClient(Connectionstring);
+                // Get the container client
+
+                containerClient = blobServiceClient.GetBlobContainerClient(containername);
+                // Get the blob client
+                //check blob
+                if (envchangeOver?.changeOver?.facility != null)
+                {
+                    await CreateFolderAndFileIfNotExists(containerClient, envchangeOver?.changeOver?.facility);
+
+                }
+            }
+
+
+                BlobClient blobClient = containerClient.GetBlobClient(blobName);
+
+                // Download the blob content
+                BlobDownloadInfo download = await blobClient.DownloadAsync();
+                StringBuilder contentBuilder = new StringBuilder();
+                using (StreamReader reader = new StreamReader(download.Content, Encoding.UTF8))
+                {
+                    contentBuilder.Append(await reader.ReadToEndAsync());
+                }
+
+                PSVChangeOver pSVChangeOver = new PSVChangeOver();
+                var byteArray = pSVChangeOver.UpdateAddRecord(contentBuilder, envchangeOver.changeOver);
+
+                using (MemoryStream memoryStream = new MemoryStream(byteArray))
+                {
+                    await blobClient.UploadAsync(memoryStream, overwrite: true);
+                }
+
+            }
+            catch (System.Exception ex)
+            {
+                return new BadRequestObjectResult(ex.Message);
+            }
+            return new OkObjectResult("Sucessfully added/Updated the request");
+        }
+
+        private void SetConnectionDetails_Stage(out string Connectionstring, out string containername)
+        {
+            var builder = new ConfigurationBuilder()
+                    .AddJsonFile("appSettings.json");
+            Configuration = builder.Build();
+
+            Connectionstring = Configuration.GetSection("AzureStageSettings").GetSection("Connectionstring").Value;
+            containername = Configuration.GetSection("AzureStageSettings").GetSection("Containername").Value;
+
+
+        }
+
+        private void SetConnectionDetails_Dev(out string Connectionstring, out string containername)
+        {
+            var builder = new ConfigurationBuilder()
+                    .AddJsonFile("appSettings.json");
+            Configuration = builder.Build();
+
+            Connectionstring = Configuration.GetSection("AzureDevSettings").GetSection("Connectionstring").Value;
+            containername = Configuration.GetSection("AzureDevSettings").GetSection("Containername").Value;
+
+
+        }
+
+        private async Task CreateFolderAndFileIfNotExists(BlobContainerClient blobContainerClient, string facility)
+        {
+
+            // POZ / POZ_Equipment.psv  blobname
+            await blobContainerClient.CreateIfNotExistsAsync();
+
+            //  string blobName = eq.facility + "/" + eq.facility + "_Equipment.psv";
+            string blobName = facility + "/" + facility + "_Changeover.psv";
+
+            // Check if the "folder" exists
+            if (!await FolderExistsAsync(blobContainerClient, facility))
+            {
+                // Create a  blob to represent the folder
+                BlobClient blobClient = blobContainerClient.GetBlobClient(blobName);
+                await blobClient.UploadAsync(new BinaryData(fileHeader), overwrite: true);
+
+                Console.WriteLine($"Folder '{facility}' created.");
+            }
+            else
+            {
+                Console.WriteLine($"Folder '{facility}' already exists.");
+            }
+            // Check if the file exists
+            string filePath = blobName;
+            BlobClient fileBlobClient = blobContainerClient.GetBlobClient(filePath);
+
+            if (!await fileBlobClient.ExistsAsync())
+            {
+                // Create the file
+                await fileBlobClient.UploadAsync(new BinaryData(fileHeader), overwrite: true);
+                Console.WriteLine($"File '{filePath}' created in folder '{facility}'.");
+            }
+            else
+            {
+                Console.WriteLine($"File '{filePath}' already exists in folder '{facility}'.");
+            }
+
+        }
+
+        private static async Task<bool> FolderExistsAsync(BlobContainerClient containerClient, string folderName)
+        {
+            await foreach (BlobItem blobItem in containerClient.GetBlobsAsync(prefix: folderName))
+            {
+                if (blobItem.Name.StartsWith(folderName))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+
+    }
+}
